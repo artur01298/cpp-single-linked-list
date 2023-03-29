@@ -84,6 +84,7 @@ class SingleLinkedList {
         // Возвращает ссылку на самого себя
         // Инкремент итератора, не указывающего на существующий элемент списка, приводит к неопределённому поведению
         BasicIterator& operator++() noexcept {
+            assert(node_ != nullptr);
             node_ = node_->next_node;
             return *this;
         }
@@ -109,14 +110,8 @@ class SingleLinkedList {
         // Вызов этого оператора у итератора, не указывающего на существующий элемент списка,
         // приводит к неопределённому поведению
         [[nodiscard]] pointer operator->() const noexcept {
-            if (node_)
-            {
-                return &node_->value;
-            }
-            else
-            {
-                return nullptr;
-            }
+            assert(node_ != nullptr);
+            return &node_->value;
         }
     private:
         Node* node_ = nullptr;
@@ -126,15 +121,11 @@ public:
     SingleLinkedList() {}
 
     SingleLinkedList(std::initializer_list<Type> values) {
-        SingleLinkedList buffer;
-        buffer.Init(values.begin(), values.end());
-        swap(buffer);
+        Init(values.begin(), values.end());
     }
 
     SingleLinkedList(const SingleLinkedList& other) {
-        SingleLinkedList buffer;
-        buffer.Init(other.begin(), other.end());
-        swap(buffer);
+        Init(other.begin(), other.end());
     }
 
     SingleLinkedList& operator=(const SingleLinkedList& rhs) {
@@ -144,18 +135,6 @@ public:
             swap(buffer);
         }
         return *this;
-    }
-
-    template <typename It>
-    void Init(It begin, It end)
-    {
-        Node* node = &head_;
-        for (It i = begin; i != end; i++)
-        {
-            size_++;
-            node->next_node = new Node(*i, nullptr);
-            node = node->next_node;
-        }
     }
 
     using value_type = Type;
@@ -240,7 +219,7 @@ public:
      * Возвращает итератор на элемент, следующий за удалённым
      */
     Iterator EraseAfter(ConstIterator pos) noexcept {
-        assert(IsEmpty() == false);
+        assert(!IsEmpty());
         Node* buffer = pos.node_->next_node->next_node;
         delete pos.node_->next_node;
         pos.node_->next_node = buffer;
@@ -255,11 +234,7 @@ public:
 
     // Сообщает, пустой ли список за время O(1)
     [[nodiscard]] bool IsEmpty() const noexcept {
-        if (!size_)
-        {
-            return true;
-        }
-        return false;
+        return (size_ == 0);
     }
 
     // Вставляет элемент value в начало списка за время O(1)
@@ -275,8 +250,8 @@ public:
             Node* head_new = head_.next_node->next_node;
             delete head_.next_node;
             head_.next_node = head_new;
-            size_--;
         }
+        size_ = 0;
     }
 
     // Обменивает содержимое списков за время O(1)
@@ -286,7 +261,7 @@ public:
     }
 
     void PopFront() noexcept {
-        assert(IsEmpty() == false);
+        assert(!IsEmpty());
         Node* buffer = head_.next_node->next_node;
         delete head_.next_node;
         head_.next_node = buffer;
@@ -302,6 +277,20 @@ private:
     // Фиктивный узел, используется для вставки "перед первым элементом"
     Node head_;
     size_t size_ = 0;
+
+    template <typename It>
+    void Init(It begin, It end)
+    {
+        SingleLinkedList buffer;
+        Node* node = &buffer.head_;
+        for (It i = begin; i != end; i++)
+        {
+            buffer.size_++;
+            node->next_node = new Node(*i, nullptr);
+            node = node->next_node;
+        }
+        swap(buffer);
+    }
 };
 
 template <typename Type>
@@ -311,7 +300,11 @@ void swap(SingleLinkedList<Type>& lhs, SingleLinkedList<Type>& rhs) noexcept {
 
 template <typename Type>
 bool operator==(const SingleLinkedList<Type>& lhs, const SingleLinkedList<Type>& rhs) {
-    return std::equal(lhs.begin(), lhs.end(), rhs.begin(), rhs.end());
+    if (lhs.GetSize() == rhs.GetSize())
+    {
+        return std::equal(lhs.begin(), lhs.end(), rhs.begin(), rhs.end());
+    }
+    return false;
 }
 
 template <typename Type>
